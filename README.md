@@ -48,5 +48,8 @@ Kada se pokaže disketa
 
 Testiranje gotovo
 
+Ispis veći font SERIAL NO TEST OK
 
 Antistatic bag
+
+Naljepnica serial
