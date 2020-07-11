@@ -26,3 +26,25 @@ while(<$uhubctl>) {
 close($uhubctl);
 
 warn "# power_hubs = ",dump($power_hubs);
+
+open(my $udev, '-|', 'udevadm monitor --kernel --subsystem-match usb-serial');
+while(<$udev>) {
+	chomp;
+	if (m/\S+ bind\s+(\S+) \(usb-serial\)/ ) {
+		my $path = $1;
+		my @p = split(/\//, $path);
+		my $dev  = $p[-1];
+		my $port = $p[-3];
+		my $hub  = $p[-4];
+		$port =~ s/^$hub\.//; # strip hub from port identifier
+		if ( exists $power_hubs->{$hub}->{$port} ) {
+			print "FOUND $dev on hub $hub port $port from $path\n";
+			print "FIXME to power-cycle use: uhubctl -l $hub -p $port -a 2\n";
+		} else {
+			print "ERROR: $dev on hub $hub port $port NOT POWER CAPABLE!\n";
+		}
+	} else {
+		warn "IGNORE udev: $_\n";
+	}
+
+}
