@@ -1,0 +1,3 @@
+[submodule "ulx3s-bin"]
+	path = ulx3s-bin
+	url = https://github.com/emard/ulx3s-bin
