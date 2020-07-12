@@ -45,6 +45,8 @@ Baza upis FUSE Burned YES
 
 ESP32 load >> Micropython - files
 
+https://github.com/emard/esp32ecp5
+
     ../ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
     ../ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x1000 esp32-idf3-20191120-v1.11-580-g973f68780.bin
     
