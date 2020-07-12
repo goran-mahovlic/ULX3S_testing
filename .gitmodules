@@ -1,3 +1,6 @@
 [submodule "ulx3s-bin"]
 	path = ulx3s-bin
 	url = https://github.com/emard/ulx3s-bin
+[submodule "esp32ecp5"]
+	path = esp32ecp5
+	url = https://github.com/emard/esp32ecp5
