@@ -73,13 +73,21 @@ while(<$udev>) {
 
 		my $serial = $prop->{ID_SERIAL_SHORT} || die "can't find ID_SERIAL_SHORT in prop = ",dump($prop);
 
-		if ( -e "data/$serial/ftx_prog" ) {
+		# steps here go in reverse order to end up in last one
+		if ( -e "data/$serial/uhubctl.3" && $seen_serial->{$serial} < 4) {
+			print "SKIP $serial reset after passthru programming done\n";
+			$seen_serial->{$serial} = 4;
+		} elsif ( -e "data/$serial/passthru" && $seen_serial->{$serial} < 3) {
+			print "SKIP $serial passthru done\n";
+			$seen_serial->{$serial} = 3;
+		} elsif ( -e "data/$serial/ftx_prog" && $seen_serial->{$serial} < 2) {
 			$seen_serial->{$serial} = 2;
-			print "SKIP $serial ftx_prog done, go to step 2\n";
+			print "SKIP $serial ftx_prog done\n";
 		}
 
 		if ( exists $power_hubs->{$hub}->{$port} ) {
 			if ( ! exists $seen_serial->{ $serial } ) {
+				# 1: proram FTDI
 				$seen_serial->{ $serial } = 1;
 
 				print "FOUND $serial $dev on hub $hub port $port from $path\n";
@@ -115,11 +123,10 @@ while(<$udev>) {
 				#delete $seen_serial->{$serial} # TODO - do we purge it?
 
 				# fork
-				#close($udev);
 				if ( fork() ) {
 					# parent
 					print "BACK to udevadm monitor loop...\n";
-					#open($udev, '-|', 'udevadm monitor --udev --subsystem-match tty --property');
+
 				} else {
 					# child
 
@@ -129,16 +136,45 @@ while(<$udev>) {
 					system $cmd;
 
 					# power cycle
-					system "uhubctl -l $hub -p $port -a 2 | tee data/$new_serial/uhubctl";
+					system "uhubctl -l $hub -p $port -a 2 | tee data/$new_serial/uhubctl.1";
 					exit 0;
 				}
 
-			} elsif ( $seen_serial->{ $serial } == 2 ) { # programmed ftdi
+			} elsif ( $seen_serial->{ $serial } == 2 ) {
+				# 2: programmed ftdi now flash passthru
+				$seen_serial->{ $serial } = 3;
 
-				print "TODO 2 -- data = ",dump( $data ), " seen_serial = ",dump( $seen_serial ), $/;
+				print "STEP 2 -- seen_serial = ",dump( $seen_serial ), "\nprop = ",dump($prop), "\n" if $debug;
 
+				my $fpga_size = read_file "data/$serial/fpga_size";
+				my @bit_files = glob "ulx3s-bin/fpga/passthru/*$fpga_size*/*$fpga_size*.bit";
+				if ( $#bit_files != 0 ) {
+					print "found more than one bit file for $fpga_size, using first one";
+				}
+				my $bit = $bit_files[0];
+
+				my $cmd = "openFPGALoader --board=ulx3s --device=$prop->{DEVNAME} --write-flash $bit | tee data/$serial/passthru";
+				print "EXECUTE $cmd\n";
+				if ( fork() ) {
+					# parent
+					print "BACK to udevadm monitor loop...\n";
+				} else {
+					system $cmd;
+					# this command will re-plug usb, so next state is power cycle
+					exit 0;
+				}
+
+			} elsif ( $seen_serial->{ $serial } == 3 ) {
+				$seen_serial->{ $serial } = 4;
+				if ( fork() ) {
+					# parent
+					print "BACK to udevadm monitor loop...\n";
+				} else {
+					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/uhubctl.3";
+					exit 0;
+				}
 			} else {
-				warn "UNHANDLED seen_serial state ", $seen_serial->{ $serial }, " prop = ",dump($prop), "\ndata $serial = ",dump( $data->{ $serial } );
+				warn "UNHANDLED seen_serial $serial state ", $seen_serial->{ $serial }, " prop = ",dump($prop), "\ndata $serial = ",dump( $data->{ $serial } );
 			}
 
 		} else {

@@ -1,13 +1,9 @@
 # ULX3S_testing
 
-FTDI programiranje 12F
 
+## step 1
 
-Baza get new serial
-
-Končar verzija će biti 3.0.8
-
-FTDI programiranje seriala
+FTDI programming
 
     usb-jtag/linux-amd64/ftx_prog --max-bus-power 500
     usb-jtag/linux-amd64/ftx_prog --manufacturer "FER-RADIONA-EMARD"
@@ -19,23 +15,23 @@ FTDI programiranje seriala
 
 RESET USB
 
-FTDI čitanje CHIP ID
-
-fujprog ----
-
-FTDI programiranje CHIP ID
-
-Upisa baza Chip ID
 
 
-RESET USB
+## step 2
 
-fujprog FLASH passthru CHIP_ID
+FLASH passthru based on CHIP_ID
 
 https://github.com/emard/ulx3s-bin/tree/master/fpga/passthru
 
 
+
+## step 3
+
 RESET USB
+
+
+
+## step 4
 
 ESP32 BURN FUSE ? YES - kako ovo riješiti da ne upisujemo
 
