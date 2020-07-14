@@ -33,12 +33,13 @@ RESET USB
 
 ## step 4
 
-ESP32 BURN FUSE ? YES - kako ovo riješiti da ne upisujemo
+ESP32 BURN FUSE ?
 
 https://github.com/emard/ulx3s-bin/blob/master/esp32/burn-efuse-flash-3v3.sh
 
 
-Baza upis FUSE Burned YES
+
+## step 5
 
 
 ESP32 load >> Micropython - files

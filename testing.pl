@@ -74,7 +74,11 @@ while(<$udev>) {
 		my $serial = $prop->{ID_SERIAL_SHORT} || die "can't find ID_SERIAL_SHORT in prop = ",dump($prop);
 
 		# steps here go in reverse order to end up in last one
-		if ( -e "data/$serial/uhubctl.3" && $seen_serial->{$serial} < 4) {
+		if (0) {
+		} elsif ( -e "data/$serial/esp32-flash-3v3" && $seen_serial->{$serial} < 5) {
+			print "SKIP $serial esp32 flash 3v3 fuse done\n";
+			$seen_serial->{$serial} = 5;
+		} elsif ( -e "data/$serial/uhubctl.3" && $seen_serial->{$serial} < 4) {
 			print "SKIP $serial reset after passthru programming done\n";
 			$seen_serial->{$serial} = 4;
 		} elsif ( -e "data/$serial/passthru" && $seen_serial->{$serial} < 3) {
@@ -171,6 +175,19 @@ while(<$udev>) {
 					print "BACK to udevadm monitor loop...\n";
 				} else {
 					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/uhubctl.3";
+					exit 0;
+				}
+
+			} elsif ( $seen_serial->{ $serial } == 4 ) {
+				$seen_serial->{ $serial } = 5;
+				if ( fork() ) {
+					# parent
+					print "BACK to udevadm monitor loop...\n";
+				} else {
+					my $cmd = "./ulx3s-bin/esp32/serial-uploader/espefuse.py --do-not-confirm --port /dev/ttyUSB0 set_flash_voltage 3.3V | tee data/$serial/esp32-flash-3v3";
+					print "EXECUTE $cmd\n";
+					system $cmd;
+					# FIXME this doesn't re-init usb so we never end up in next step!
 					exit 0;
 				}
 			} else {
