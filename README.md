@@ -5,6 +5,8 @@ FTDI programiranje 12F
 
 Baza get new serial
 
+Končar verzija će biti 3.0.8
+
 FTDI programiranje seriala
 
     usb-jtag/linux-amd64/ftx_prog --max-bus-power 500
