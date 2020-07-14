@@ -11,7 +11,7 @@ FTDI programiranje seriala
 
     usb-jtag/linux-amd64/ftx_prog --max-bus-power 500
     usb-jtag/linux-amd64/ftx_prog --manufacturer "FER-RADIONA-EMARD"
-    usb-jtag/linux-amd64/ftx_prog --product "ULX3S FPGA 12K v3.0.3"
+    usb-jtag/linux-amd64/ftx_prog --product "ULX3S FPGA 12K v3.0.8"
     usb-jtag/linux-amd64/ftx_prog --new-serial-number 120001
     usb-jtag/linux-amd64/ftx_prog --cbus 2 TxRxLED
     usb-jtag/linux-amd64/ftx_prog --cbus 3 SLEEP
@@ -49,8 +49,8 @@ ESP32 load >> Micropython - files
 
 https://github.com/emard/esp32ecp5
 
-    ../ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
-    ../ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x1000 esp32-idf3-20191120-v1.11-580-g973f68780.bin
+    ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
+    ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x1000 esp32-idf3-20191120-v1.11-580-g973f68780.bin
     
 Baza upis Micropython Yes
 
