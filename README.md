@@ -5,6 +5,8 @@ FTDI programiranje 12F
 
 Baza get new serial
 
+Končar verzija će biti 3.0.8
+
 FTDI programiranje seriala
 
     usb-jtag/linux-amd64/ftx_prog --max-bus-power 500
@@ -59,6 +61,9 @@ https://github.com/emard/ulx3s-bin/blob/master/fpga/f32c/f32c-12k-v20/f32c_ulx3s
 
 
 Baza upis selftest load Yes
+
+Sve dok svi gumbi barem jednom ne promjene status
+I dok vrijeme ne postane različito od default (RTC radi)
 
 10 sekundi >> log file SERIAL
 
