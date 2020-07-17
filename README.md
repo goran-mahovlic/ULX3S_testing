@@ -47,14 +47,30 @@ ESP32 load >> Micropython - files
 https://github.com/emard/esp32ecp5
 
     ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
-    ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x1000 esp32-idf3-20191120-v1.11-580-g973f68780.bin
+    ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash --compress 0x1000 blob/esp32/esp32-idf3-20191220-v1.12.bin
+
+However, we are installing pre-populated filesystem
+
+    ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash --compress 0x1000 blob/esp32/esp32-idf3-20191220-v1.12.bin 0x200000 upy.img
     
 Baza upis Micropython Yes
 
 
-ESP32 loada selftest sa SD kartice
+# ESP32 load selftest from SD card
 
 https://github.com/emard/ulx3s-bin/blob/master/fpga/f32c/f32c-12k-v20/f32c_ulx3s_v20_12k_selftest_100mhz_ws2_flash.img
+
+    make-sdcard.sh # helper script to create sdcard
+
+    ls -al ulx3s-bin/fpga/f32c/*-v20/*selftest*.img
+
+import os,machine
+os.mount(machine.SDCard(slot=3),"/sd")
+
+import ecp5
+ecp5.prog("/sd/f32c_ulx3s_v20_25k_selftest_100mhz_flash.img")
+
+./ulx3s-bin/fpga/f32c/f32cup.py ./ulx3s-bin/fpga/f32c/f32c-bin/selftest-mcp7940n.bin
 
 
 Baza upis selftest load Yes
@@ -68,6 +84,9 @@ parsanje seriala i ako nađe grešku ne ide dalje
 
 Baza upis selftest pass Yes
 
+power-cycle
+
+## step
 
 
 
