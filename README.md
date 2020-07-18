@@ -1,5 +1,17 @@
 # ULX3S_testing
 
+After cloning repository and submodules run scripts as root:
+
+    # download Debian dependencies
+    ./debian-install.sh
+
+    # download micropyton
+    ./blob-download.sh
+
+    # create micropython filesystems for esp32 with selftest f32c bit
+    ./make-upy-fs.sh
+
+    
 
 ## step 1
 
@@ -39,12 +51,11 @@ https://github.com/emard/ulx3s-bin/blob/master/esp32/burn-efuse-flash-3v3.sh
 
 
 
-## step 5
-
-
 ESP32 load >> Micropython - files
 
 https://github.com/emard/esp32ecp5
+
+Normal procedure is:
 
     ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
     ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash --compress 0x1000 blob/esp32/esp32-idf3-20191220-v1.12.bin
@@ -52,25 +63,32 @@ https://github.com/emard/esp32ecp5
 However, we are installing pre-populated filesystem created using `make-upy-fs.sh`
 
     ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash --compress 0x1000 blob/esp32/esp32-idf3-20191220-v1.12.bin 0x200000 upy.img
+
+
     
-Baza upis Micropython Yes
+ESP32 start selftest from ESP32 filesystem (we can't touch SD card from micropython because
+if we do we can't test it)
 
-
-# ESP32 load selftest from SD card
+This files (gzipped) are part of micropython filesystem created by `make-upy-fs.sh`
 
 https://github.com/emard/ulx3s-bin/blob/master/fpga/f32c/f32c-12k-v20/f32c_ulx3s_v20_12k_selftest_100mhz_ws2_flash.img
 
-    make-sdcard.sh # helper script to create sdcard
+>>> import ecp5
+>>> ecp5.prog("f32c_selftest-25.bit.gz")
+I (78530) gpio: GPIO[23]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
+I (78530) gpio: GPIO[19]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
+I (78540) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
 
-    ls -al ulx3s-bin/fpga/f32c/*-v20/*selftest*.img
+m32l>
 
-import os,machine
-os.mount(machine.SDCard(slot=3),"/sd")
-
-import ecp5
-ecp5.prog("/sd/f32c_ulx3s_v20_25k_selftest_100mhz_flash.img")
 
 ./ulx3s-bin/fpga/f32c/f32cup.py ./ulx3s-bin/fpga/f32c/f32c-bin/selftest-mcp7940n.bin
+
+
+
+openFPGALoader --board=ulx3s --device=/dev/ttyUSB0 ulx3s-bin/fpga/f32c/f32c-25k-vector-v20/ulx3s_v20_25f_f32c_selftest_2ws_89mhz.bit
+./ulx3s-bin/fpga/f32c/f32cup.py ./ulx3s-bin/fpga/f32c/f32c-bin/selftest-mcp7940n.bin
+--> SD ok
 
 
 Baza upis selftest load Yes

@@ -9,7 +9,7 @@ use Data::Dump qw(dump);
 
 # define manufacturer included in serial number and submit data to
 # https://github.com/emard/ulx3s/blob/master/doc/MANUAL.md
-my $manufacturer  = 'K';
+my $manufacturer  = 'K'; # single letter prefix
 my $board_version = 'v3.0.8';
 my $serial_fmt    = '%05d';
 
@@ -187,6 +187,12 @@ while(<$udev>) {
 					my $cmd = "./ulx3s-bin/esp32/serial-uploader/espefuse.py --do-not-confirm --port /dev/ttyUSB0 set_flash_voltage 3.3V | tee data/$serial/esp32-flash-3v3";
 					print "EXECUTE $cmd\n";
 					system $cmd;
+
+					my $fpga_size = read_file "data/$serial/fpga_size";
+					$cmd = "./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash --compress 0x1000 blob/esp32/esp32-idf3-20191220-v1.12.bin 0x200000 upy-$fpga_size.img | tee data/$serial/esp32-micropython";
+					print "EXECUTE $cmd\n";
+					system $cmd;
+
 					# FIXME this doesn't re-init usb so we never end up in next step!
 					exit 0;
 				}
