@@ -13,7 +13,7 @@ my $manufacturer  = 'K'; # single letter prefix
 my $board_version = 'v3.0.8';
 my $serial_fmt    = '%05d';
 
-if ( length( $manufacturer . sprintf($serial_fmt,0,0) ) > 6 ) {
+if ( length( $manufacturer . sprintf($serial_fmt,0) ) > 6 ) {
 	die "serial number must be shorter than 6 chars, decrease \$manufacturer in script!";
 }
 
@@ -29,6 +29,7 @@ my $power_hubs;
 my $hub_loc;
 
 $SIG{CHLD} = "IGNORE";
+$|=1; # flush STDOUT
 
 # collect hub locations and ports which are powered
 open(my $uhubctl, '-|', 'uhubctl');
@@ -111,8 +112,10 @@ while(<$udev>) {
 
 				die "no fpga_size for $serial" unless $fpga_size;
 
-				my @existing_serials = glob "data/$manufacturer*";
-				my $next_serial = scalar($#existing_serials) + 1;
+				my @existing_serials = sort glob "data/$manufacturer*";
+				my $next_serial = $existing_serials[-1]; # last
+				$next_serial =~ s{^data/\D+}{}; # remove prefix and manufacturer
+				$next_serial++; # increase by 1
 				if ( $next_serial == 0 ) {
 					$next_serial = 1; # start with 1 not 0
 				}

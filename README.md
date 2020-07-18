@@ -11,7 +11,32 @@ After cloning repository and submodules run scripts as root:
     # create micropython filesystems for esp32 with selftest f32c bit
     ./make-upy-fs.sh
 
-    
+You will want to edit `testing.pl` script to specify single letter prefix
+of serial number to dentote manufacturer. By default it is `K`:
+
+    my $manufacturer  = 'K'; # single letter prefix
+
+You will also want to update board version:
+
+    my $board_version = 'v3.0.8';    
+
+Chaning board version will require to submit patch to ujprog and fujprog
+so that new version is supported at:
+
+https://github.com/f32c/tools/tree/master/ujprog
+
+https://github.com/kost/fujprog
+
+
+To run test of ULX3S after production run `testing.pl` as root.
+
+If you don't want to start with serial 1, create directory with serial number
+which is one less than first serial number like:
+
+    mkdir -p data/K00042
+
+if you want first serial number to be `K00043`
+
 
 ## step 1
 
