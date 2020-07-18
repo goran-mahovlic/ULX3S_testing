@@ -6,6 +6,7 @@ use English;
 use File::Slurp;
 
 use Data::Dump qw(dump);
+use autodie;
 
 # define manufacturer included in serial number and submit data to
 # https://github.com/emard/ulx3s/blob/master/doc/MANUAL.md
@@ -43,7 +44,7 @@ while(<$uhubctl>) {
 
 	}
 }
-close($uhubctl);
+#close($uhubctl); # can't close allready exited
 
 warn "# power_hubs = ",dump($power_hubs) if $debug;
 
@@ -75,7 +76,12 @@ while(<$udev>) {
 		my $serial = $prop->{ID_SERIAL_SHORT} || die "can't find ID_SERIAL_SHORT in prop = ",dump($prop);
 
 		# steps here go in reverse order to end up in last one
-		if (0) {
+		if ( -e "data/$serial/child_pid" ) {
+			print "WORKING $serial child_pid = ", read_file("data/$serial/child_pid"), "\n";
+			next;
+		} elsif ( -e "data/__$serial/child_pid" ) {
+			print "WORKING OLD $serial child_pid = ", read_file("data/__$serial/child_pid"), "\n";
+			next;
 		} elsif ( -e "data/$serial/esp32-flash-3v3" && $seen_serial->{$serial} < 5) {
 			print "SKIP $serial esp32 flash 3v3 fuse done\n";
 			$seen_serial->{$serial} = 5;
@@ -93,7 +99,6 @@ while(<$udev>) {
 		if ( exists $power_hubs->{$hub}->{$port} ) {
 			if ( ! exists $seen_serial->{ $serial } ) {
 				# 1: proram FTDI
-				$seen_serial->{ $serial } = 1;
 
 				print "FOUND $serial $dev on hub $hub port $port from $path\n";
 				print "FIXME to power-cycle use: uhubctl -l $hub -p $port -a 2\n";
@@ -108,7 +113,7 @@ while(<$udev>) {
 					}
 					warn "# $_\n"; # if $debug;
 				}
-				close($model);
+				#close($model);
 
 				die "no fpga_size for $serial" unless $fpga_size;
 
@@ -122,18 +127,18 @@ while(<$udev>) {
 				my $new_serial = $manufacturer . sprintf( $serial_fmt, $next_serial );
 				print "NEW SERIAL for $serial is $new_serial\n";
 
+				mkdir "data/__$serial" if $serial ne $new_serial;
 				mkdir "data/$new_serial"; # allocate new serial
 				write_file "data/$new_serial/fpga_size", $fpga_size;
 				write_file "data/$new_serial/old_serial", $serial;
 
-				$seen_serial->{$new_serial} = 2; # go to next step
-				#delete $seen_serial->{$serial} # TODO - do we purge it?
 
 				# fork
-				if ( fork() ) {
+				if ( my $pid = fork() ) {
 					# parent
-					print "BACK to udevadm monitor loop...\n";
-
+					write_file "data/__$serial/child_pid", $pid;
+					write_file "data/$new_serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
 					# child
 
@@ -144,14 +149,22 @@ while(<$udev>) {
 
 					# power cycle
 					system "uhubctl -l $hub -p $port -a 2 | tee data/$new_serial/uhubctl.1";
+					unlink "data/$new_serial/child_pid";
 					exit 0;
 				}
 
 			} elsif ( $seen_serial->{ $serial } == 2 ) {
 				# 2: programmed ftdi now flash passthru
-				$seen_serial->{ $serial } = 3;
 
 				print "STEP 2 -- seen_serial = ",dump( $seen_serial ), "\nprop = ",dump($prop), "\n" if $debug;
+
+				# remove old serial left-over
+				my $old_serial = read_file "data/$serial/old_serial";
+				if ( $old_serial ne $serial ) {
+					unlink "data/__$old_serial/child_pid";
+					rmdir "data/__$old_serial";
+					delete $seen_serial->{$old_serial};
+				}
 
 				my $fpga_size = read_file "data/$serial/fpga_size";
 				my @bit_files = glob "ulx3s-bin/fpga/passthru/*$fpga_size*/*$fpga_size*.bit";
@@ -162,30 +175,33 @@ while(<$udev>) {
 
 				my $cmd = "openFPGALoader --board=ulx3s --device=$prop->{DEVNAME} --write-flash $bit | tee data/$serial/passthru";
 				print "EXECUTE $cmd\n";
-				if ( fork() ) {
+				if ( my $pid = fork() ) {
 					# parent
-					print "BACK to udevadm monitor loop...\n";
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
 					system $cmd;
 					# this command will re-plug usb, so next state is power cycle
+					unlink "data/$serial/child_pid";
 					exit 0;
 				}
 
 			} elsif ( $seen_serial->{ $serial } == 3 ) {
-				$seen_serial->{ $serial } = 4;
-				if ( fork() ) {
+				if ( my $pid = fork() ) {
 					# parent
-					print "BACK to udevadm monitor loop...\n";
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
 					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/uhubctl.3";
+					unlink "data/$serial/child_pid";
 					exit 0;
 				}
 
 			} elsif ( $seen_serial->{ $serial } == 4 ) {
-				$seen_serial->{ $serial } = 5;
-				if ( fork() ) {
+				if ( my $pid = fork() ) {
 					# parent
-					print "BACK to udevadm monitor loop...\n";
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
 					my $cmd = "./ulx3s-bin/esp32/serial-uploader/espefuse.py --do-not-confirm --port /dev/ttyUSB0 set_flash_voltage 3.3V | tee data/$serial/esp32-flash-3v3";
 					print "EXECUTE $cmd\n";
@@ -197,6 +213,7 @@ while(<$udev>) {
 					system $cmd;
 
 					# FIXME this doesn't re-init usb so we never end up in next step!
+					unlink "data/$serial/child_pid";
 					exit 0;
 				}
 			} else {
