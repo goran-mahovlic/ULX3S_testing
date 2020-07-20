@@ -85,16 +85,16 @@ while(<$udev>) {
 		} elsif ( -e "data/__$serial/child_pid" ) {
 			print "WORKING __$serial child_pid = ", read_file("data/__$serial/child_pid"), "\n";
 			next;
-		} elsif ( -e "data/$serial/esp32-flash-3v3" && $seen_serial->{$serial} < 5) {
+		} elsif ( -e "data/$serial/40.esp32-flash-3v3" && $seen_serial->{$serial} < 5) {
 			print "SKIP $serial esp32 flash 3v3 fuse done\n";
 			$seen_serial->{$serial} = 5;
-		} elsif ( -e "data/$serial/uhubctl.3" && $seen_serial->{$serial} < 4) {
+		} elsif ( -e "data/$serial/30.uhubctl" && $seen_serial->{$serial} < 4) {
 			print "SKIP $serial reset after passthru programming done\n";
 			$seen_serial->{$serial} = 4;
-		} elsif ( -e "data/$serial/passthru" && $seen_serial->{$serial} < 3) {
+		} elsif ( -e "data/$serial/20.passthru" && $seen_serial->{$serial} < 3) {
 			print "SKIP $serial passthru done\n";
 			$seen_serial->{$serial} = 3;
-		} elsif ( -e "data/$serial/ftx_prog" && $seen_serial->{$serial} < 2) {
+		} elsif ( -e "data/$serial/10.ftx_prog" && $seen_serial->{$serial} < 2) {
 			$seen_serial->{$serial} = 2;
 			print "SKIP $serial ftx_prog done\n";
 		}
@@ -146,7 +146,7 @@ while(<$udev>) {
 					# child
 
 					# put new data in FTDI ship
-					my $cmd = sprintf( qq{./ulx3s-bin/usb-jtag/linux-amd64/ftx_prog --max-bus-power 500 --manufacturer "FER-RADIONA-EMARD" --product "ULX3S FPGA %02dK %s" --new-serial-number "%s" --old-serial-number "%s" --cbus 2 TxRxLED --cbus 3 SLEEP | tee data/$new_serial/ftx_prog }, $fpga_size, $board_version, $new_serial, $serial );
+					my $cmd = sprintf( qq{./ulx3s-bin/usb-jtag/linux-amd64/ftx_prog --max-bus-power 500 --manufacturer "FER-RADIONA-EMARD" --product "ULX3S FPGA %02dK %s" --new-serial-number "%s" --old-serial-number "%s" --cbus 2 TxRxLED --cbus 3 SLEEP | tee data/$new_serial/10.ftx_prog }, $fpga_size, $board_version, $new_serial, $serial );
 					print "EXECUTE $cmd\n";
 					system $cmd;
 
@@ -158,7 +158,7 @@ while(<$udev>) {
 					delete $seen_serial->{$serial};
 
 					# power cycle
-					system "uhubctl -l $hub -p $port -a 2 | tee data/$new_serial/uhubctl.1";
+					system "uhubctl -l $hub -p $port -a 2 | tee data/$new_serial/11.uhubctl";
 					exit 0;
 				}
 
@@ -174,7 +174,7 @@ while(<$udev>) {
 				}
 				my $bit = $bit_files[0];
 
-				my $cmd = "openFPGALoader --board=ulx3s --device=$prop->{DEVNAME} --write-flash $bit | tee data/$serial/passthru";
+				my $cmd = "openFPGALoader --board=ulx3s --device=$prop->{DEVNAME} --write-flash $bit | tee data/$serial/20.passthru";
 				print "EXECUTE $cmd\n";
 				if ( my $pid = fork() ) {
 					# parent
@@ -196,7 +196,7 @@ while(<$udev>) {
 				} else {
 					unlink "data/$serial/child_pid";
 
-					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/uhubctl.3";
+					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/30.uhubctl";
 					exit 0;
 				}
 
@@ -207,12 +207,12 @@ while(<$udev>) {
 					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
 					my $dev = $prop->{DEVNAME} || die "no DEVNAME in prop = ",dump($prop);
-					my $cmd = "./ulx3s-bin/esp32/serial-uploader/espefuse.py --do-not-confirm --port $dev set_flash_voltage 3.3V | tee data/$serial/esp32-flash-3v3";
+					my $cmd = "./ulx3s-bin/esp32/serial-uploader/espefuse.py --do-not-confirm --port $dev set_flash_voltage 3.3V | tee data/$serial/40.esp32-flash-3v3";
 					print "EXECUTE $cmd\n";
 					system $cmd;
 
 					my $fpga_size = read_file "data/$serial/fpga_size";
-					$cmd = "./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port $dev --baud 460800 write_flash --compress 0x1000 blob/esp32/esp32-idf3-20191220-v1.12.bin 0x200000 upy-$fpga_size.img | tee data/$serial/esp32-micropython";
+					$cmd = "./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port $dev --baud 460800 write_flash --compress 0x1000 blob/esp32/esp32-idf3-20191220-v1.12.bin 0x200000 upy-$fpga_size.img | tee data/$serial/41.esp32-micropython";
 					print "EXECUTE $cmd\n";
 					system $cmd;
 
@@ -242,6 +242,7 @@ while(<$udev>) {
 						$ser_dev->write_settings || die;
 
 						open($ser_log, '>', $log);
+						print "DEBUG serial_open($dev,$log)\n" if $debug;
 					}
 
 					sub serial_read {
@@ -272,7 +273,9 @@ while(<$udev>) {
 						close($ser_log);
 					}
 
-					serial_open($dev, "data/$serial/f32c-ecp5-prog");
+					sleep 2; # wait for esp32 to boot
+
+					serial_open($dev, "data/$serial/42.f32c-ecp5-prog");
 
 					serial_write("\r");
 					serial_write("import ecp5");
@@ -281,7 +284,7 @@ while(<$udev>) {
 
 					system "./ulx3s-bin/fpga/f32c/f32cup.py blob/f32c/c2_ulx3s_test.ino.bin | tee data/$serial/f32c-selftest";
 
-					serial_open($dev, "data/$serial/f32c-selftest");
+					serial_open($dev, "data/$serial/43.f32c-selftest");
 
 					# all_ok=7 = edid ok
 					# all_ok=6 = everthing except EDID
@@ -290,7 +293,7 @@ while(<$udev>) {
 
 					unlink "data/$serial/child_pid";
 
-					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/uhubctl.4";
+					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/44.uhubctl";
 
 					exit 0;
 				}
