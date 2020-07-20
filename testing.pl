@@ -85,6 +85,9 @@ while(<$udev>) {
 		} elsif ( -e "data/__$serial/child_pid" ) {
 			print "WORKING __$serial child_pid = ", read_file("data/__$serial/child_pid"), "\n";
 			next;
+		} elsif ( -e "data/$serial/50.f32c-ecp5-prog" && $seen_serial->{$serial} < 6) {
+			print "SKIP $serial selftest done\n";
+			$seen_serial->{$serial} = 6;
 		} elsif ( -e "data/$serial/40.esp32-flash-3v3" && $seen_serial->{$serial} < 5) {
 			print "SKIP $serial esp32 flash 3v3 fuse done\n";
 			$seen_serial->{$serial} = 5;
@@ -216,6 +219,19 @@ while(<$udev>) {
 					print "EXECUTE $cmd\n";
 					system $cmd;
 
+					unlink "data/$serial/child_pid";
+
+					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/42.uhubctl";
+					exit 0;
+				}
+
+			} elsif ( $seen_serial->{ $serial } == 5 ) {
+				if ( my $pid = fork() ) {
+					# parent
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
+				} else {
+					my $dev = $prop->{DEVNAME} || die "no DEVNAME in prop = ",dump($prop);
 					sleep 1;
 
 					my $ser_dev;
@@ -273,18 +289,19 @@ while(<$udev>) {
 						close($ser_log);
 					}
 
+					serial_open($dev, "data/$serial/50.f32c-ecp5-prog");
+
 					sleep 2; # wait for esp32 to boot
 
-					serial_open($dev, "data/$serial/42.f32c-ecp5-prog");
+					serial_write("\r\r"); # invoke prompt
 
-					serial_write("\r");
 					serial_write("import ecp5");
 					serial_write("ecp5.prog('f32c_selftest-$fpga_size.bit.gz')");
 					serial_close;
 
-					system "./ulx3s-bin/fpga/f32c/f32cup.py blob/f32c/c2_ulx3s_test.ino.bin | tee data/$serial/f32c-selftest";
+					system "./ulx3s-bin/fpga/f32c/f32cup.py blob/f32c/c2_ulx3s_test.ino.bin | tee data/$serial/51.f32c-selftest";
 
-					serial_open($dev, "data/$serial/43.f32c-selftest");
+					serial_open($dev, "data/$serial/52.f32c-selftest");
 
 					# all_ok=7 = edid ok
 					# all_ok=6 = everthing except EDID
@@ -293,7 +310,7 @@ while(<$udev>) {
 
 					unlink "data/$serial/child_pid";
 
-					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/44.uhubctl";
+					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/53.uhubctl";
 
 					exit 0;
 				}
