@@ -1,0 +1,6 @@
+created with
+
+    ./ulx3s-bin/esp32/serial-uploader/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 read_flash 0x200000 0x200000 blob/esp32/upy-blank.img
+
+after erasing flash and installing micropython
+
