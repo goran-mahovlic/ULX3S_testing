@@ -358,6 +358,8 @@ while(<$udev>) {
 
 					exit 0; # will never be reached
 				}
+			} elsif ( $seen_serial->{ $serial } == 8 ) {
+				print "TEST OK for $serial, unplug and put into bag\n";
 			} else {
 				warn "UNHANDLED seen_serial $serial state ", $seen_serial->{ $serial }, " prop = ",dump($prop), "\ndata $serial = ",dump( $data->{ $serial } );
 			}
