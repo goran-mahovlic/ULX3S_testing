@@ -33,6 +33,60 @@ my $hub_loc;
 $SIG{CHLD} = "IGNORE";
 $|=1; # flush STDOUT
 
+my $ser_dev;
+my $ser_log;
+
+sub serial_open {
+	my ( $dev, $log ) = @_;
+
+	$ser_dev = new Device::SerialPort($dev) || die "can't open $dev";
+	$ser_dev->baudrate(115200) || die;
+	$ser_dev->parity("none") || die;
+	$ser_dev->databits(8) || die;
+	$ser_dev->stopbits(1) || die;
+	$ser_dev->handshake("none") || die;
+
+	$ser_dev->read_char_time(0);
+	$ser_dev->read_const_time(500);
+
+	$ser_dev->user_msg(1);
+	$ser_dev->error_msg(1);
+
+	$ser_dev->write_settings || die;
+
+	open($ser_log, '>', $log);
+	print "DEBUG serial_open($dev,$log)\n" if $debug;
+}
+
+sub serial_read {
+	my ($count, $in) = (0,'');
+	while ( $count == 0 ) {
+		($count, $in) = $ser_dev->read(1024);
+		die "stop serial_read" unless defined $count;
+		warn "<<[$count] ",dump($in) if $debug && $count > 0;
+	}
+	print "$in\n";
+	print $ser_log "serial<< $in";
+	return $in;
+}
+
+sub serial_write {
+	my ($out, $stop_at) = @_;
+	$stop_at //= '> $'; # prompt
+	$ser_dev->write($out . "\r");
+	print $ser_log "serial>> $out\n";
+	my $in = '';
+	while ( $in !~ m/${stop_at}/ ) { # wait for prompt
+		$in .= serial_read;
+	}
+	return $in;
+}
+
+sub serial_close {
+	$ser_dev->close;
+	close($ser_log);
+}
+
 # collect hub locations and ports which are powered
 open(my $uhubctl, '-|', 'uhubctl');
 while(<$uhubctl>) {
@@ -77,6 +131,7 @@ while(<$udev>) {
 		}
 
 		my $serial = $prop->{ID_SERIAL_SHORT} || die "can't find ID_SERIAL_SHORT in prop = ",dump($prop);
+		my $dev = $prop->{DEVNAME} || die "no DEVNAME in prop = ",dump($prop);
 
 		# steps here go in reverse order to end up in last one
 		if ( -e "data/$serial/child_pid" ) {
@@ -85,6 +140,12 @@ while(<$udev>) {
 		} elsif ( -e "data/__$serial/child_pid" ) {
 			print "WORKING __$serial child_pid = ", read_file("data/__$serial/child_pid"), "\n";
 			next;
+		} elsif ( -e "data/$serial/70.amiga-output" && $seen_serial->{$serial} < 8) {
+			print "SKIP $serial amiga done\n";
+			$seen_serial->{$serial} = 8;
+		} elsif ( -e "data/$serial/60.amiga" && $seen_serial->{$serial} < 7) {
+			print "SKIP $serial amiga programmed\n";
+			$seen_serial->{$serial} = 7;
 		} elsif ( -e "data/$serial/50.f32c-ecp5-prog" && $seen_serial->{$serial} < 6) {
 			print "SKIP $serial selftest done\n";
 			$seen_serial->{$serial} = 6;
@@ -209,7 +270,6 @@ while(<$udev>) {
 					write_file "data/$serial/child_pid", $pid;
 					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
-					my $dev = $prop->{DEVNAME} || die "no DEVNAME in prop = ",dump($prop);
 					my $cmd = "./ulx3s-bin/esp32/serial-uploader/espefuse.py --do-not-confirm --port $dev set_flash_voltage 3.3V | tee data/$serial/40.esp32-flash-3v3";
 					print "EXECUTE $cmd\n";
 					system $cmd;
@@ -231,63 +291,9 @@ while(<$udev>) {
 					write_file "data/$serial/child_pid", $pid;
 					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
-					my $dev = $prop->{DEVNAME} || die "no DEVNAME in prop = ",dump($prop);
 					sleep 1;
 
-					my $ser_dev;
-					my $ser_log;
-
 					my $fpga_size = read_file "data/$serial/fpga_size";
-
-					sub serial_open {
-						my ( $dev, $log ) = @_;
-
-						$ser_dev = new Device::SerialPort($dev) || die;
-						$ser_dev->baudrate(115200) || die;
-						$ser_dev->parity("none") || die;
-						$ser_dev->databits(8) || die;
-						$ser_dev->stopbits(1) || die;
-						$ser_dev->handshake("none") || die;
-
-						$ser_dev->read_char_time(0);
-						$ser_dev->read_const_time(500);
-
-						$ser_dev->user_msg(1);
-						$ser_dev->error_msg(1);
-
-						$ser_dev->write_settings || die;
-
-						open($ser_log, '>', $log);
-						print "DEBUG serial_open($dev,$log)\n" if $debug;
-					}
-
-					sub serial_read {
-						my ($count, $in) = (0,'');
-						while ( $count == 0 ) {
-							($count, $in) = $ser_dev->read(1024);
-							warn "<<[$count] ",dump($in) if $debug && $count > 0;
-						}
-						print "$in\n";
-						print $ser_log "serial<< $in";
-						return $in;
-					}
-
-					sub serial_write {
-						my ($out, $stop_at) = @_;
-						$stop_at //= '> $'; # prompt
-						$ser_dev->write($out . "\r");
-						print $ser_log "serial>> $out\n";
-						my $in = '';
-						while ( $in !~ m/${stop_at}/ ) { # wait for prompt
-							$in .= serial_read;
-						}
-						return $in;
-					}
-
-					sub serial_close {
-						$ser_dev->close;
-						close($ser_log);
-					}
 
 					serial_open($dev, "data/$serial/50.f32c-ecp5-prog");
 
@@ -313,6 +319,44 @@ while(<$udev>) {
 					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/53.uhubctl";
 
 					exit 0;
+				}
+
+			} elsif ( $seen_serial->{ $serial } == 6 ) {
+				if ( my $pid = fork() ) {
+					# parent
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
+				} else {
+					my $fpga_size = read_file "data/$serial/fpga_size";
+					my $cmd = "./blob/fujprog -S $serial blob/fpga/ulx3s_${fpga_size}f_minimig_ps2kbd.bit | tee data/$serial/60.amiga";
+					#my $cmd = "openFPGALoader --board=ulx3s --device=$dev --write-sram blob/fpga/ulx3s_${fpga_size}f_minimig_ps2kbd.bit | tee data/$serial/60.amiga";
+					print "EXECUTE: $cmd\n";
+					system "$cmd";
+
+					unlink "data/$serial/child_pid";
+
+					exit 0;
+				}
+
+			} elsif ( $seen_serial->{ $serial } == 7 ) {
+				if ( my $pid = fork() ) {
+					# parent
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
+				} else {
+					print "Amiga output on $dev...\n";
+					serial_open($dev, "data/$serial/70.amiga-output");
+
+					eval {
+						# forever, it will die on board uplug
+						while (1) {
+							serial_read;
+						}
+					};
+
+					unlink "data/$serial/child_pid";
+
+					exit 0; # will never be reached
 				}
 			} else {
 				warn "UNHANDLED seen_serial $serial state ", $seen_serial->{ $serial }, " prop = ",dump($prop), "\ndata $serial = ",dump( $data->{ $serial } );
