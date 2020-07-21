@@ -94,7 +94,7 @@ while(<$uhubctl>) {
 	if ( m/Current status for hub (\S+)/ ) {
 		$hub_loc = $1;
 		$power_hubs->{$hub_loc} = {};
-	} elsif ( m/^\s+Port (\d+): \S+ power/ ) {
+	} elsif ( m/^\s+Port (\d+): \S+/ ) {
 		$power_hubs->{$hub_loc}->{ $1 }++;
 
 	}
