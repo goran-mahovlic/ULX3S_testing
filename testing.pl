@@ -313,7 +313,7 @@ while(<$udev>) {
 					serial_write("ecp5.prog('f32c_selftest-$fpga_size.bit.gz')");
 					serial_close;
 
-					system "./ulx3s-bin/fpga/f32c/f32cup.py blob/f32c/c2_ulx3s_test.ino.bin | tee data/$serial/51.f32c-selftest";
+					system "./ulx3s-bin/fpga/f32c/f32cup.py --port=$dev blob/f32c/c2_ulx3s_test.ino.bin | tee data/$serial/51.f32c-selftest";
 
 					serial_open($dev, "data/$serial/52.f32c-selftest");
 
