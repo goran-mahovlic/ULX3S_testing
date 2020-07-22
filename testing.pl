@@ -107,6 +107,7 @@ print "Plug in some FPGA boards or power cycle ports using uhubctl!\n";
 
 my $seen_serial; # state machine for serial
 my $data; # collected data about this serial
+my @powercycle_usb;
 
 open(my $udev, '-|', 'udevadm monitor --udev --subsystem-match tty --property');
 while(<$udev>) {
@@ -130,7 +131,12 @@ while(<$udev>) {
 			$prop->{$name} = $val;
 		}
 
-		my $serial = $prop->{ID_SERIAL_SHORT} || die "can't find ID_SERIAL_SHORT in prop = ",dump($prop);
+		my $serial = $prop->{ID_SERIAL_SHORT};
+		if ( ! defined $serial ) {
+			print "ERROR: can't find ID_SERIAL_SHORT in prop = ",dump($prop);
+			print "SKIPPING THIS BOARD: plug it alone and run ./fix-ftdi-serial.sh";
+			next;
+		}
 		my $dev = $prop->{DEVNAME} || die "no DEVNAME in prop = ",dump($prop);
 
 		# steps here go in reverse order to end up in last one
