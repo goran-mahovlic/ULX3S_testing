@@ -1,6 +1,5 @@
-#!/bin/sh -xe
+#!/bin/sh -e
 
-mkdir /tmp/selftest
-cp -v ulx3s-bin/fpga/f32c/*-v20/*selftest*.img /tmp/selftest/
-gzip -9 /tmp/selftest/*
+test -z "$1" && echo "Usage: $0 /dev/mmcblk0" && exit 1
 
+gzip -cd blob/ulx3s-saxonsoc/v2020.04.20/saxonsoc-sdimage.raw.gz | dd status=progress bs=1M of=$1

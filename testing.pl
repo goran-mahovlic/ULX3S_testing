@@ -116,7 +116,6 @@ while(<$udev>) {
 		warn "DEBUG $_\n" if $debug;
 		my $path = $1;
 		my @p = split(/\//, $path);
-		my $dev  = $p[-1];
 		my $port = $p[-5];
 		my $hub  = $p[-6];
 		$port =~ s/^$hub\.//; # strip hub from port identifier
@@ -145,12 +144,15 @@ while(<$udev>) {
 			next;
 		} elsif ( -e "data/__$serial/child_pid" ) {
 			print "WORKING __$serial child_pid = ", read_file("data/__$serial/child_pid"), "\n";
+		} elsif ( -e "data/$serial/80.saxonsoc" && $seen_serial->{$serial} < 9) {
+			print "SKIP $serial saxonsoc booted\n";
+			$seen_serial->{$serial} = 9;
 			next;
-		} elsif ( -e "data/$serial/70.amiga-output" && $seen_serial->{$serial} < 8) {
-			print "SKIP $serial amiga done\n";
+		} elsif ( -e "data/$serial/70.u-boot" && $seen_serial->{$serial} < 8) {
+			print "SKIP $serial saxonsoc u-boot programmed\n";
 			$seen_serial->{$serial} = 8;
-		} elsif ( -e "data/$serial/60.amiga" && $seen_serial->{$serial} < 7) {
-			print "SKIP $serial amiga programmed\n";
+		} elsif ( -e "data/$serial/60.bios" && $seen_serial->{$serial} < 7) {
+			print "SKIP $serial saxonsoc bios programmed\n";
 			$seen_serial->{$serial} = 7;
 		} elsif ( -e "data/$serial/50.f32c-ecp5-prog" && $seen_serial->{$serial} < 6) {
 			print "SKIP $serial selftest done\n";
@@ -333,9 +335,7 @@ while(<$udev>) {
 					write_file "data/$serial/child_pid", $pid;
 					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
-					my $fpga_size = read_file "data/$serial/fpga_size";
-					my $cmd = "./blob/fujprog -S $serial blob/fpga/ulx3s_${fpga_size}f_minimig_ps2kbd.bit | tee data/$serial/60.amiga";
-					#my $cmd = "openFPGALoader --board=ulx3s --device=$dev --write-sram blob/fpga/ulx3s_${fpga_size}f_minimig_ps2kbd.bit | tee data/$serial/60.amiga";
+					my $cmd = "./blob/fujprog -S $serial -j FLASH -f 0x300000 blob/ulx3s-saxonsoc/v2020.04.20/bios.bin\@0x300000.img | tee data/$serial/60.bios";
 					print "EXECUTE: $cmd\n";
 					system "$cmd";
 
@@ -350,21 +350,41 @@ while(<$udev>) {
 					write_file "data/$serial/child_pid", $pid;
 					print "BACK to udevadm monitor loop... child_pid = $pid\n";
 				} else {
-					print "Amiga output on $dev...\n";
-					serial_open($dev, "data/$serial/70.amiga-output");
-
-					eval {
-						# forever, it will die on board uplug
-						while (1) {
-							serial_read;
-						}
-					};
+					my $cmd = "./blob/fujprog -S $serial -j FLASH -f 0x310000 blob/ulx3s-saxonsoc/v2020.04.20/u-boot.bin\@0x310000.img | tee data/$serial/70.u-boot";
+					system "$cmd";
 
 					unlink "data/$serial/child_pid";
 
-					exit 0; # will never be reached
+					exit 0;
 				}
 			} elsif ( $seen_serial->{ $serial } == 8 ) {
+				if ( my $pid = fork() ) {
+					# parent
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
+				} else {
+					sleep 1;
+
+					my $fpga_size = read_file "data/$serial/fpga_size";
+
+					serial_open($dev, "data/$serial/80.saxonsoc");
+					print "Saxon soc output on $dev...\n";
+
+					sleep 2; # wait for esp32 to boot
+
+					serial_write("\r\r"); # invoke prompt
+
+					serial_write("import ecp5");
+					serial_write("ecp5.prog('saxonsoc-ulx3s-linux-$fpga_size.bit.gz')", 'buildroot login:');
+					serial_write('root', '#');
+					serial_write('poweroff', 'machineModeSbi exception');
+
+					system "uhubctl -l $hub -p $port -a 2 | tee data/$serial/81.uhubctl";
+					unlink "data/$serial/child_pid";
+
+					exit 0;
+				}
+			} elsif ( $seen_serial->{ $serial } == 9 ) {
 				print "TEST OK for $serial, unplug and put into bag\n";
 			} else {
 				warn "UNHANDLED seen_serial $serial state ", $seen_serial->{ $serial }, " prop = ",dump($prop), "\ndata $serial = ",dump( $data->{ $serial } );
