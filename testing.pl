@@ -147,7 +147,6 @@ while(<$udev>) {
 		} elsif ( -e "data/$serial/80.saxonsoc" && $seen_serial->{$serial} < 9) {
 			print "SKIP $serial saxonsoc booted\n";
 			$seen_serial->{$serial} = 9;
-			next;
 		} elsif ( -e "data/$serial/70.u-boot" && $seen_serial->{$serial} < 8) {
 			print "SKIP $serial saxonsoc u-boot programmed\n";
 			$seen_serial->{$serial} = 8;
