@@ -385,7 +385,7 @@ while(<$udev>) {
 					exit 0;
 				}
 			} elsif ( $seen_serial->{ $serial } == 9 ) {
-				print "TEST OK for $serial, unplug and put into bag\n";
+				print "TEST OK for $serial, unplug, remove SD card and put into bag\n";
 			} else {
 				warn "UNHANDLED seen_serial $serial state ", $seen_serial->{ $serial }, " prop = ",dump($prop), "\ndata $serial = ",dump( $data->{ $serial } );
 			}
