@@ -11,7 +11,7 @@ use autodie;
 
 # define manufacturer included in serial number and submit data to
 # https://github.com/emard/ulx3s/blob/master/doc/MANUAL.md
-my $manufacturer  = 'K'; # single letter prefix
+my $manufacturer  = 'B'; # single letter prefix
 my $board_version = 'v3.0.8';
 my $serial_fmt    = '%05d';
 
@@ -144,6 +144,7 @@ while(<$udev>) {
 			next;
 		} elsif ( -e "data/__$serial/child_pid" ) {
 			print "WORKING __$serial child_pid = ", read_file("data/__$serial/child_pid"), "\n";
+			next;
 		} elsif ( -e "data/$serial/80.saxonsoc" && $seen_serial->{$serial} < 9) {
 			print "SKIP $serial saxonsoc booted\n";
 			$seen_serial->{$serial} = 9;
