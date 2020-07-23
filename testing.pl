@@ -145,6 +145,9 @@ while(<$udev>) {
 		} elsif ( -e "data/__$serial/child_pid" ) {
 			print "WORKING __$serial child_pid = ", read_file("data/__$serial/child_pid"), "\n";
 			next;
+		} elsif ( -e "data/$serial/90.test-ok" && $seen_serial->{$serial} < 10) {
+			print "SKIP $serial test ok\n";
+			$seen_serial->{$serial} = 10;
 		} elsif ( -e "data/$serial/80.saxonsoc" && $seen_serial->{$serial} < 9) {
 			print "SKIP $serial saxonsoc booted\n";
 			$seen_serial->{$serial} = 9;
@@ -385,6 +388,10 @@ while(<$udev>) {
 					exit 0;
 				}
 			} elsif ( $seen_serial->{ $serial } == 9 ) {
+				print "TEST OK for $serial, unplug, remove SD card and put into bag\n";
+				my $fpga_size = read_file "data/$serial/fpga_size";
+				system "./blob/fujprog -S $serial blob/fpga/test-ok/*-${fpga_size}f.bit | tee data/$serial/90.test-ok";
+			} elsif ( $seen_serial->{ $serial } == 10 ) {
 				print "TEST OK for $serial, unplug, remove SD card and put into bag\n";
 			} else {
 				warn "UNHANDLED seen_serial $serial state ", $seen_serial->{ $serial }, " prop = ",dump($prop), "\ndata $serial = ",dump( $data->{ $serial } );
