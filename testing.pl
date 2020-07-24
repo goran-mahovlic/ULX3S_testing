@@ -168,6 +168,8 @@ while(<$udev>) {
 			print "SKIP $serial ftx_prog done\n";
 		}
 
+		warn "GO TO STEP ", $seen_serial->{$serial}, "\n";
+
 		if ( exists $power_hubs->{$hub}->{$port} ) {
 			if ( ! exists $seen_serial->{ $serial } ) {
 				# 1: program FTDI
@@ -357,23 +359,32 @@ while(<$udev>) {
 					exit 0;
 				}
 			} elsif ( $seen_serial->{ $serial } == 9 ) {
+				if ( my $pid = fork() ) {
+					# parent
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
+				} else {
 
-				print "TEST OK for $serial, unplug, remove SD card and put into bag\n";
-				my $fpga_size = read_file "data/$serial/fpga_size";
+					print "saxonsoc booted for $serial\n";
+					my $fpga_size = read_file "data/$serial/fpga_size";
 
 
-				sleep 1;
-				serial_open($dev, "data/$serial/90.test-ok");
-				serial_write("\r\r"); # invoke prompt
+					sleep 1;
+					serial_open($dev, "data/$serial/90.test-ok");
+					serial_write("\r\r"); # invoke prompt
 
-				serial_write("import os");
-				serial_write("os.rename('main.py.template','main.py')");
+					serial_write("import os");
+					serial_write("os.rename('main.py.template','main.py')");
 
-				serial_write("import ecp5");
-				serial_write("ecp5.prog('counter-${fpga_size}.bit.gz')");
+					serial_write("import ecp5");
+					serial_write("ecp5.prog('counter-${fpga_size}.bit.gz')",
+						'gpio: GPIO\[18\]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0' # this is regex, so we need to escape it
+					);
 
-				# this will never return
-				exit 0;
+					unlink "data/$serial/child_pid";
+
+					exit 0;
+				}
 
 
 			} elsif ( $seen_serial->{ $serial } == 10 ) {
