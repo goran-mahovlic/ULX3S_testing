@@ -11,7 +11,7 @@ use autodie;
 
 # define manufacturer included in serial number and submit data to
 # https://github.com/emard/ulx3s/blob/master/doc/MANUAL.md
-my $manufacturer  = 'B'; # single letter prefix
+my $manufacturer  = 'K'; # single letter prefix
 my $board_version = 'v3.0.8';
 my $serial_fmt    = '%05d';
 
