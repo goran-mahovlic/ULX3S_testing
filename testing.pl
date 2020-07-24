@@ -373,8 +373,9 @@ while(<$udev>) {
 					serial_open($dev, "data/$serial/90.test-ok");
 					serial_write("\r\r"); # invoke prompt
 
-					serial_write("import os");
-					serial_write("os.rename('main.py.template','main.py')");
+					# make wifi disabled by default
+					#serial_write("import os");
+					#serial_write("os.rename('main.py.template','main.py')");
 
 					serial_write("import ecp5");
 					serial_write("ecp5.prog('counter-${fpga_size}.bit.gz')",
