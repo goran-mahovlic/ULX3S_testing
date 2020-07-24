@@ -388,9 +388,25 @@ while(<$udev>) {
 					exit 0;
 				}
 			} elsif ( $seen_serial->{ $serial } == 9 ) {
+
 				print "TEST OK for $serial, unplug, remove SD card and put into bag\n";
 				my $fpga_size = read_file "data/$serial/fpga_size";
-				system "./blob/fujprog -S $serial blob/fpga/test-ok/*-${fpga_size}f.bit | tee data/$serial/90.test-ok";
+
+
+				sleep 1;
+				serial_open($dev, "data/$serial/90.test-ok");
+				serial_write("\r\r"); # invoke prompt
+
+				serial_write("import os");
+				serial_write("os.rename('main.py.template','main.py')");
+
+				serial_write("import ecp5");
+				serial_write("ecp5.prog('counter-${fpga_size}.bit.gz')");
+
+				# this will never return
+				exit 0;
+
+
 			} elsif ( $seen_serial->{ $serial } == 10 ) {
 				print "TEST OK for $serial, unplug, remove SD card and put into bag\n";
 			} else {
