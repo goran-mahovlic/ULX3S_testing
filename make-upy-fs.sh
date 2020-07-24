@@ -18,6 +18,8 @@ add_selftest() {
 
 	mv /tmp/upy/main.py /tmp/upy/main.py.template
 
+	cp blob/ulx3s-saxonsoc/v2020.04.20/bios.bin@0x300000.img.gz /tmp/upy/
+	cp blob/ulx3s-saxonsoc/v2020.04.20/u-boot.bin@0x310000.img.gz /tmp/upy/
 	cp blob/ulx3s-saxonsoc/v2020.04.20/saxonsoc-ulx3s-linux-$size.bit.gz /tmp/upy/
 	cp blob/fpga/test-ok/counter-$size.bit.gz /tmp/upy/
 

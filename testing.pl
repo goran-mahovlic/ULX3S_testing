@@ -151,15 +151,9 @@ while(<$udev>) {
 		} elsif ( -e "data/$serial/80.saxonsoc" && $seen_serial->{$serial} < 9) {
 			print "SKIP $serial saxonsoc booted\n";
 			$seen_serial->{$serial} = 9;
-		} elsif ( -e "data/$serial/70.u-boot" && $seen_serial->{$serial} < 8) {
-			print "SKIP $serial saxonsoc u-boot programmed\n";
-			$seen_serial->{$serial} = 8;
-		} elsif ( -e "data/$serial/60.bios" && $seen_serial->{$serial} < 7) {
-			print "SKIP $serial saxonsoc bios programmed\n";
-			$seen_serial->{$serial} = 7;
 		} elsif ( -e "data/$serial/50.f32c-ecp5-prog" && $seen_serial->{$serial} < 6) {
 			print "SKIP $serial selftest done\n";
-			$seen_serial->{$serial} = 6;
+			$seen_serial->{$serial} = 8; # steps 6,7 removed
 		} elsif ( -e "data/$serial/40.esp32-flash-3v3" && $seen_serial->{$serial} < 5) {
 			print "SKIP $serial esp32 flash 3v3 fuse done\n";
 			$seen_serial->{$serial} = 5;
@@ -332,34 +326,6 @@ while(<$udev>) {
 					exit 0;
 				}
 
-			} elsif ( $seen_serial->{ $serial } == 6 ) {
-				if ( my $pid = fork() ) {
-					# parent
-					write_file "data/$serial/child_pid", $pid;
-					print "BACK to udevadm monitor loop... child_pid = $pid\n";
-				} else {
-					my $cmd = "./blob/fujprog -S $serial -j FLASH -f 0x300000 blob/ulx3s-saxonsoc/v2020.04.20/bios.bin\@0x300000.img | tee data/$serial/60.bios";
-					print "EXECUTE: $cmd\n";
-					system "$cmd";
-
-					unlink "data/$serial/child_pid";
-
-					exit 0;
-				}
-
-			} elsif ( $seen_serial->{ $serial } == 7 ) {
-				if ( my $pid = fork() ) {
-					# parent
-					write_file "data/$serial/child_pid", $pid;
-					print "BACK to udevadm monitor loop... child_pid = $pid\n";
-				} else {
-					my $cmd = "./blob/fujprog -S $serial -j FLASH -f 0x310000 blob/ulx3s-saxonsoc/v2020.04.20/u-boot.bin\@0x310000.img | tee data/$serial/70.u-boot";
-					system "$cmd";
-
-					unlink "data/$serial/child_pid";
-
-					exit 0;
-				}
 			} elsif ( $seen_serial->{ $serial } == 8 ) {
 				if ( my $pid = fork() ) {
 					# parent
@@ -378,6 +344,9 @@ while(<$udev>) {
 					serial_write("\r\r"); # invoke prompt
 
 					serial_write("import ecp5");
+
+					serial_write("ecp5.flash('bios.bin\@0x300000.img.gz', addr=0x300000)");
+					serial_write("ecp5.flash('u-boot.bin\@0x310000.img.gz', addr=0x310000)");
 					serial_write("ecp5.prog('saxonsoc-ulx3s-linux-$fpga_size.bit.gz')", 'buildroot login:');
 					serial_write('root', '#');
 					serial_write('poweroff', 'machineModeSbi exception');
