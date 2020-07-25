@@ -105,13 +105,15 @@ warn "# power_hubs = ",dump($power_hubs) if $debug;
 
 print "Plug in some FPGA boards or power cycle ports using uhubctl!\n";
 
-my $seen_serial; # state machine for serial
 my $data; # collected data about this serial
 my @powercycle_usb;
 
 open(my $udev, '-|', 'udevadm monitor --udev --subsystem-match tty --property');
 while(<$udev>) {
 	chomp;
+
+	my $seen_serial; # step to exeute for serial (state is in data/serial dir)
+
 	if (m/\S+ add\s+(\S+) \(tty\)/ ) {
 		warn "DEBUG $_\n" if $debug;
 		my $path = $1;
