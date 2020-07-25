@@ -142,7 +142,47 @@ while(<$udev>) {
 
 		# steps here go in reverse order to end up in last one
 		if ( -e "data/$serial/child_pid" ) {
-			print "WORKING $serial child_pid = ", read_file("data/$serial/child_pid"), "\n";
+			my $child_pid = read_file("data/$serial/child_pid");
+			eval { kill 0, $child_pid }; # autodie will kill us;
+			if ( $@ ) {
+				print "ERROR: $serial child_pid = $child_pid not found, retry last step\n";
+
+				if ( my $pid = fork() ) {
+					# parent
+					write_file "data/$serial/child_pid", $pid;
+					print "BACK to udevadm monitor loop... child_pid = $pid\n";
+				} else {
+
+					my @files = sort glob "data/$serial/[0-9][0-9].*";
+					my $step = $files[-1];
+					if ( $step =~ m/\.fail$/ ) {
+						# we failed allready, flash fail bit
+						my $fpga_size = read_file "data/$serial/fpga_size";
+						system "./blob/fujprog blob/fpga/test-fail/fail-$fpga_size.bit";
+						# we don't remove child_pid, since this is failed board!
+						exit 0;
+					}
+					$step =~ s{data/$serial/}{};
+					$step = substr($step, 0, 1);
+					print "FAIL step $step\n";
+					while ( @files ) {
+						my $file = pop @files;
+						if ( $file =~ m{data/$serial/$step} ) { # same step
+							rename "$file", "$file.fail";
+						} else {
+							last; # previous step, exit
+						}
+					}
+
+					unlink "data/$serial/child_pid";
+
+					system "uhubctl -l $hub -p $port -a 2";
+
+					exit 0;
+				}
+			} else {
+				print "WORKING $serial child_pid = $child_pid\n";
+			}
 			next;
 		} elsif ( -e "data/__$serial/child_pid" ) {
 			print "WORKING __$serial child_pid = ", read_file("data/__$serial/child_pid"), "\n";
@@ -232,6 +272,9 @@ while(<$udev>) {
 
 					# power cycle
 					system "uhubctl -l $hub -p $port -a 2 | tee data/$new_serial/11.uhubctl";
+
+					# save script to power cycle this board
+					write_file "data/$serial/uhubctl.sh", "uhubctl -l $hub -p $port -a 2";
 					exit 0;
 				}
 
