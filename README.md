@@ -37,6 +37,11 @@ which is one less than first serial number like:
 
 if you want first serial number to be `K00043`
 
+# TODO
+
+- [ ] no serial programming by default (needs some option to run `ftx_prog`)
+- [ ] force serial number to program for this board
+
 
 ## step 1
 
