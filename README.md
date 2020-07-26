@@ -40,6 +40,9 @@ if you want first serial number to be `K00043`
 - [ ] force serial number to program for this board
 
 
+# Steps performed during testing
+
+
 ## step 1
 
 FTDI programming
@@ -50,15 +53,12 @@ FTDI programming
     usb-jtag/linux-amd64/ftx_prog --new-serial-number 120001
     usb-jtag/linux-amd64/ftx_prog --cbus 2 TxRxLED
     usb-jtag/linux-amd64/ftx_prog --cbus 3 SLEEP
-    
 
-RESET USB
-
-
+power-cycle board using `uhubctl`
 
 ## step 2
 
-FLASH passthru based on CHIP_ID
+FLASH passthru bitstrem based on CHIP_ID
 
 https://github.com/emard/ulx3s-bin/tree/master/fpga/passthru
 
@@ -66,19 +66,19 @@ https://github.com/emard/ulx3s-bin/tree/master/fpga/passthru
 
 ## step 3
 
-RESET USB
+power-cycle board
 
 
 
 ## step 4
 
-ESP32 BURN FUSE ?
+ESP32 BURN FUSE
 
 https://github.com/emard/ulx3s-bin/blob/master/esp32/burn-efuse-flash-3v3.sh
 
 
 
-ESP32 load >> Micropython - files
+ESP32 flash Micropython
 
 https://github.com/emard/esp32ecp5
 
@@ -97,58 +97,58 @@ ESP32 start selftest from ESP32 filesystem (we can't touch SD card from micropyt
 if we do we can't test it)
 
 This files (gzipped) are part of micropython filesystem created by `make-upy-fs.sh`
+which include bitstream that will be used in following steps to flash FPGA since
+this is fastest way to start bitstream on ULX3S
+
+
+## step 5
+
+This will load selftest bitstream and start it
 
 https://github.com/emard/ulx3s-bin/blob/master/fpga/f32c/f32c-12k-v20/f32c_ulx3s_v20_12k_selftest_100mhz_ws2_flash.img
 
->>> import ecp5
->>> ecp5.prog("f32c_selftest-25.bit.gz")
-I (78530) gpio: GPIO[23]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
-I (78530) gpio: GPIO[19]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
-I (78540) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
+    >>> import ecp5
+    >>> ecp5.prog("f32c_selftest-25.bit.gz")
+    I (78530) gpio: GPIO[23]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
+    I (78530) gpio: GPIO[19]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
+    I (78540) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0
+    
+    m32l>
 
-m32l>
+After selftest is started wi will load slightly modified f32c binary which will test all
+parts of board just once, wait for each key to be pressed and depressed to be sure that
+all of them are working and finally wait for HDMI EDID (so you have to connect monitor
+to pass this step).
 
+Selftest used is available at
 
-./ulx3s-bin/fpga/f32c/f32cup.py ./ulx3s-bin/fpga/f32c/f32c-bin/selftest-mcp7940n.bin
+https://github.com/dpavlin/Arduino-projects/tree/master/c2_ulx3s_test
 
+and is modified version of original selftest available from
 
+https://github.com/f32c/arduino/tree/master/libraries/Compositing/examples/c2_ulx3s_test
 
-openFPGALoader --board=ulx3s --device=/dev/ttyUSB0 ulx3s-bin/fpga/f32c/f32c-25k-vector-v20/ulx3s_v20_25f_f32c_selftest_2ws_89mhz.bit
-./ulx3s-bin/fpga/f32c/f32cup.py ./ulx3s-bin/fpga/f32c/f32c-bin/selftest-mcp7940n.bin
---> SD ok
+It will be loaded over serial port using
 
-
-Baza upis selftest load Yes
-
-Sve dok svi gumbi barem jednom ne promjene status
-I dok vrijeme ne postane različito od default (RTC radi)
-
-10 sekundi >> log file SERIAL
-
-parsanje seriala i ako nađe grešku ne ide dalje
-
-Baza upis selftest pass Yes
-
-power-cycle
-
-## step
+   ./ulx3s-bin/fpga/f32c/f32cup.py ./ulx3s-bin/fpga/f32c/f32c-bin/selftest-mcp7940n.bin
 
 
 
-ESP32 loada Amigu sa SD kartice
+## step 8
 
-https://github.com/kost/ulx3s-minimig/releases/download/v2019.12.25/ulx3s_12f_minimig_ps2kbd.compress.bit
+There used to be more steps, but they where removed since all bitstreams are now part of esp32 filesystem.
 
-Baza Amiga pass Yes
+This step uses SaxonSoc which upstream is https://github.com/SpinalHDL/SaxonSoc
+which was ported to ULX3S by @lawrie
 
-Upis baza SERIAL test pass
+We are using @kost build from https://github.com/dok3r/ulx3s-saxonsoc/releases
+and requires sdcard with rootfs which can be generated using `make-sdcard.sh`
 
-Kada se pokaže disketa
+## step 9
 
-Testiranje gotovo
+Start success bitstream which will indicate size of FPGA with LEDs to allow easy sorting into separate
+boxes
 
-Ispis veći font SERIAL NO TEST OK
+## step 10
 
-Antistatic bag
-
-Naljepnica serial
+dummy step to report that testing is done
