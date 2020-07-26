@@ -5,9 +5,6 @@ After cloning repository and submodules run scripts as root:
     # download Debian dependencies
     ./debian-install.sh
 
-    # download micropyton
-    ./blob-download.sh
-
     # create micropython filesystems for esp32 with selftest f32c bit
     ./make-upy-fs.sh
 
