@@ -274,7 +274,7 @@ while(<$udev>) {
 					system "uhubctl -l $hub -p $port -a 2 | tee data/$new_serial/11.uhubctl";
 
 					# save script to power cycle this board
-					write_file "data/$serial/uhubctl.sh", "uhubctl -l $hub -p $port -a 2";
+					write_file "data/$new_serial/uhubctl.sh", "uhubctl -l $hub -p $port -a 2";
 					exit 0;
 				}
 
