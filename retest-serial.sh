@@ -8,6 +8,7 @@ if [ -d data/$1 ] ; then
 	test -f data/$1/child_pid && rm data/$1/child_pid
 	echo "Backup created:"
 	ls -al /tmp/$1.tar.gz
+	test -f data/$1/uhubctl.sh && sh -x data/$1/uhubctl.sh
 else
 	echo "No $1 serial!"
 	exit 1
