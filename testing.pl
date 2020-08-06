@@ -13,6 +13,9 @@ use autodie;
 # https://github.com/emard/ulx3s/blob/master/doc/MANUAL.md
 my $manufacturer  = 'K'; # single letter prefix
 my $board_version = 'v3.0.8';
+
+my $production = $ENV{PRODUCTION} || 0; # use PRODUCTION=1 to program FTDI
+
 my $serial_fmt    = '%05d';
 
 if ( length( $manufacturer . sprintf($serial_fmt,0) ) > 6 ) {
@@ -102,6 +105,12 @@ while(<$uhubctl>) {
 #close($uhubctl); # can't close allready exited
 
 warn "# power_hubs = ",dump($power_hubs) if $debug;
+
+if ( ! $production ) {
+	print "WARNING: this script runs in testing mode without programming of FTDI chip, but it *WILL* wipe esp32 flash\n";
+	print "To run this script in production mode (on empty FPGA boards) re-run this script with:\n\n";
+	print "PRODUCTION=1 $0\n\n";
+}
 
 print "Plug in some FPGA boards or power cycle ports using uhubctl!\n";
 
@@ -241,6 +250,12 @@ while(<$udev>) {
 					$next_serial = 1; # start with 1 not 0
 				}
 				my $new_serial = $manufacturer . sprintf( $serial_fmt, $next_serial );
+
+				if ( ! $production ) {
+					print "TESTING MODE, using unchanged $serial\n";
+					$new_serial = $serial;
+				}
+
 				print "NEW SERIAL for $serial is $new_serial\n";
 
 				mkdir "data/__$serial";
@@ -260,8 +275,13 @@ while(<$udev>) {
 
 					# put new data in FTDI ship
 					my $cmd = sprintf( qq{./ulx3s-bin/usb-jtag/linux-amd64/ftx_prog --max-bus-power 500 --manufacturer "FER-RADIONA-EMARD" --product "ULX3S FPGA %02dK %s" --new-serial-number "%s" --old-serial-number "%s" --cbus 2 TxRxLED --cbus 3 SLEEP | tee data/$new_serial/10.ftx_prog }, $fpga_size, $board_version, $new_serial, $serial );
-					print "EXECUTE $cmd\n";
-					system $cmd;
+					if ( $production ) {
+						print "EXECUTE $cmd\n";
+						system $cmd;
+					} else {
+						print "TESTING, skipping $cmd\n";
+						write_file "data/$new_serial/10.ftx_prog", "# skipped, testhing"; # fake output to get to next stepdata
+					}
 
 					unlink "data/$new_serial/child_pid";
 
