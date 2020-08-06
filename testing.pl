@@ -167,7 +167,7 @@ while(<$udev>) {
 					if ( $step =~ m/\.fail$/ ) {
 						# we failed allready, flash fail bit
 						my $fpga_size = read_file "data/$serial/fpga_size";
-						system "./blob/fujprog blob/fpga/test-fail/fail-$fpga_size.bit";
+						system "./blob/fujprog -S $serial blob/fpga/test-fail/fail-$fpga_size.bit";
 						# we don't remove child_pid, since this is failed board!
 						exit 0;
 					}
