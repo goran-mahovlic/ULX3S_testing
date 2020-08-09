@@ -144,6 +144,12 @@ which was ported to ULX3S by @lawrie
 We are using @kost build from https://github.com/dok3r/ulx3s-saxonsoc/releases
 and requires sdcard with rootfs which can be generated using `make-sdcard.sh`
 
+:warning: Current version of saxonsoc as configured in this repository for 85k is for boards with 32Mb of
+RAM and will not work with boards with 64Mb of RAM. To fix this, you will need to download
+https://github.com/dok3r/ulx3s-saxonsoc/releases/download/v2020.04.20/saxonsoc-ulx3s-linux-85-64mem.bit
+and compress it into `blob/ulx3s-saxonsoc/v2020.04.20/saxonsoc-ulx3s-linux-85.bit.gz`
+
+
 ## step 9
 
 Start success bitstream which will indicate size of FPGA with LEDs to allow easy sorting into separate
