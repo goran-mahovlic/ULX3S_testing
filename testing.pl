@@ -117,6 +117,7 @@ print "Plug in some FPGA boards or power cycle ports using uhubctl!\n";
 my $data; # collected data about this serial
 my @powercycle_usb;
 
+# we really need to monitor udev here to get serial numbers of devices
 open(my $udev, '-|', 'udevadm monitor --udev --subsystem-match tty --property');
 while(<$udev>) {
 	chomp;
@@ -229,7 +230,7 @@ while(<$udev>) {
 				print "FIXME to power-cycle use: uhubctl -l $hub -p $port -a 2\n";
 
 				my $fpga_size;
-				open(my $model, '-|', "openFPGALoader --board=ulx3s --detect --device=$prop->{DEVNAME}");
+				open(my $model, '-|', "./blob/openFPGALoader --board=ulx3s --detect --device=$prop->{DEVNAME}");
 				while(<$model>) {
 					chomp;
 					if ( m/model\s+LFE5U-(\d+)/ ) {
@@ -310,7 +311,7 @@ while(<$udev>) {
 				}
 				my $bit = $bit_files[0];
 
-				my $cmd = "openFPGALoader --board=ulx3s --device=$prop->{DEVNAME} --write-flash $bit | tee data/$serial/20.passthru";
+				my $cmd = "./blob/openFPGALoader --board=ulx3s --device=$prop->{DEVNAME} --write-flash $bit | tee data/$serial/20.passthru";
 				print "EXECUTE $cmd\n";
 				if ( my $pid = fork() ) {
 					# parent
