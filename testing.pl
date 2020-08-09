@@ -30,6 +30,13 @@ if ( ! -e 'data' ) {
 	mkdir 'data'; # we will store dumps there
 }
 
+my @upy_images = glob("upy*.img");
+warn "# upy_images = ",dump( \@upy_images ) if $debug;
+if ( $#upy_images != 4 ) {
+	print "Missing micropython images, creating them using make-upy-fs.sh\n";
+	system "./make-upy-fs.sh";
+}
+
 my $power_hubs;
 my $hub_loc;
 

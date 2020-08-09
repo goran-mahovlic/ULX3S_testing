@@ -1,12 +1,13 @@
 # ULX3S_testing
 
+> This project is intended to be used on Debian buster. If you don't have
+> Debian or don't want to pollute your installation you can examine `docker`
+> directory and use docker image instead.
+
 After cloning repository and submodules run scripts as root:
 
     # download Debian dependencies
     ./debian-install.sh
-
-    # create micropython filesystems for esp32 with selftest f32c bit
-    ./make-upy-fs.sh
 
 You will want to edit `testing.pl` script to specify single letter prefix
 of serial number to dentote manufacturer. By default it is `K`:
@@ -34,10 +35,21 @@ which is one less than first serial number like:
 
 if you want first serial number to be `K00043`
 
-# TODO
 
-- [ ] no serial programming by default (needs some option to run `ftx_prog`)
-- [ ] force serial number to program for this board
+# Helper scripts in this repository
+
+## ./make-upy-fs.sh
+
+Create micropython filesystems for esp32 with selftest f32c bit. It will be
+called automatically from `testing.pl` but if you change files included in it
+you can also run it manually.
+
+## ./retest-serial.sh serial
+
+This script will cleanup files from `data/serial` and re-run programming
+of board with this serial number
+
+
 
 
 # Steps performed during testing
@@ -158,3 +170,12 @@ boxes
 ## step 10
 
 dummy step to report that testing is done
+
+
+# TODO
+
+- [x] no serial programming by default (use PRODUCTION=1 for FTDI programming)
+- [x] force serial number to program for this board
+- [ ] document docker image usage
+
+
