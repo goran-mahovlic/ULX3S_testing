@@ -1,13 +1,16 @@
 # ULX3S_testing
 
 > This project is intended to be used on Debian buster. If you don't have
-> Debian or don't want to pollute your installation you can examine `docker`
-> directory and use docker image instead.
+> Debian or don't want to pollute your installation you can examine
+> [docker/README.md](docker/README.md) and use docker image instead.
 
 After cloning repository and submodules run scripts as root:
 
     # download Debian dependencies
     ./debian-install.sh
+
+    # create sdcard for saxonsoc needed to test it
+    ./make-sdcard.sh /dev/mmcblk0
 
 You will want to edit `testing.pl` script to specify single letter prefix
 of serial number to dentote manufacturer. By default it is `K`:
@@ -43,6 +46,10 @@ if you want first serial number to be `K00043`
 Create micropython filesystems for esp32 with selftest f32c bit. It will be
 called automatically from `testing.pl` but if you change files included in it
 you can also run it manually.
+
+## ./make-sdcard.sh /dev/mmcblk0
+
+Create rootfs for saxonsoc
 
 ## ./retest-serial.sh serial
 
@@ -176,6 +183,6 @@ dummy step to report that testing is done
 
 - [x] no serial programming by default (use PRODUCTION=1 for FTDI programming)
 - [x] force serial number to program for this board
-- [ ] document docker image usage
+- [x] document docker image usage
 
 
