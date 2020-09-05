@@ -184,5 +184,5 @@ dummy step to report that testing is done
 - [x] no serial programming by default (use PRODUCTION=1 for FTDI programming)
 - [x] force serial number to program for this board
 - [x] document docker image usage
-
+- [ ] add passthru image to esp32 to make ecp5.passthru work
 
